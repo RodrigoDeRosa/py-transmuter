@@ -9,8 +9,8 @@ from typing import (
 )
 
 from pydantic import BaseModel
-from src.pydantic.utils import get_required_fields
-from src.self_inspector import SelfInspector
+from py_transmuter.pydantic.utils import get_required_fields
+from py_transmuter.self_inspector import SelfInspector
 
 
 SourceModel = TypeVar("SourceModel", bound=BaseModel)

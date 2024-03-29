@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from statistics import mean
 from pydantic import BaseModel
 from pytest import raises
-from src.pydantic.aggregator import BaseModelAggregator
+from py_transmuter.pydantic.aggregator import BaseModelAggregator
 
 
 def test_aggregator_field_direct_mappings():
