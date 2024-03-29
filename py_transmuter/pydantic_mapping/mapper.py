@@ -25,7 +25,7 @@ class BaseModelMapper(Generic[TargetModel, SourceModel], SelfInspector):
                 - A callable that takes the source model as an argument and returns
                     the value of the field in the target model.
         context (Mapping[str, Any] | None):
-            A dictionary that allows passing specific attributes to the aggregator
+            A dictionary that allows passing specific attributes to the mapper
             if they are instance specific not class wide. Defaults to None.
 
     Methods:
