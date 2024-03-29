@@ -22,5 +22,5 @@ functions or lambdas.
 To install YourLibraryName, run the following command in your terminal:
 
 ```bash
-pip install yourlibraryname
+pip install py-transmuter
 ```
