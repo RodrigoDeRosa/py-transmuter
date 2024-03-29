@@ -9,7 +9,7 @@ from typing import (
 )
 
 from pydantic import BaseModel
-from py_transmuter.pydantic.utils import get_required_fields
+from py_transmuter.pydantic_mapping.utils import get_required_fields
 from py_transmuter.self_inspector import SelfInspector
 
 

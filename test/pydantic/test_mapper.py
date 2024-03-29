@@ -1,7 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel
 from pytest import raises
-from py_transmuter.pydantic.mapper import BaseModelMapper
+from py_transmuter.pydantic_mapping.mapper import BaseModelMapper
 
 
 def test_map_with_field_name():

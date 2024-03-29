@@ -3,5 +3,5 @@ __all__ = [
     "BaseModelMapper",
 ]
 
-from py_transmuter.pydantic.aggregator import BaseModelAggregator
-from py_transmuter.pydantic.mapper import BaseModelMapper
+from py_transmuter.pydantic_mapping.aggregator import BaseModelAggregator
+from py_transmuter.pydantic_mapping.mapper import BaseModelMapper
