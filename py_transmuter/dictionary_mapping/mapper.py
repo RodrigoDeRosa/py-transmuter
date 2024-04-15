@@ -37,9 +37,9 @@ class DictionaryMapper(SelfInspector):
         Any, Any | tuple[Any, Callable[[Any], Any]] | Callable[[dict[Any, Any]], Any]
     ]
 
-    context: Mapping[Any, Any] | None = None
+    context: Mapping[str, Any] | None = None
 
-    def __init__(self, context: Mapping[Any, Any] | None = None) -> None:
+    def __init__(self, context: Mapping[str, Any] | None = None) -> None:
         self.assert_is_valid_mapper()
 
         self.context = context
@@ -48,11 +48,10 @@ class DictionaryMapper(SelfInspector):
         return [self.map(item) for item in data]
 
     def map(self, data: dict[Any, Any]) -> dict[Any, Any]:
-        resolved_map = {
+        return {
             target_field_name: self.resolve_field(data, source_field)
             for target_field_name, source_field in self.mapping.items()
         }
-        return resolved_map
     
     def resolve_field(
         self,

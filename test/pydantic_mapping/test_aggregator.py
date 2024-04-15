@@ -318,7 +318,7 @@ def test_aggregator_with_overlapping_mappings_and_aggregations_fails_to_create()
         ABAggregator()
 
 
-def test_aggregator_without_mappings_or_aggregations():
+def test_aggregator_without_mappings_or_aggregations_fails_to_create():
     class A(BaseModel):
         id: int
 
