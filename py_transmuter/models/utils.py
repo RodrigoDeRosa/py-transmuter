@@ -1,10 +1,15 @@
 import inspect
 from types import UnionType
-from typing import Optional, Union, get_type_hints
-from pydantic import BaseModel
+from typing import Optional, Protocol, Union, get_type_hints, runtime_checkable
 
 
-def get_required_fields(model_cls: type[BaseModel]) -> list[str]:
+@runtime_checkable
+class SupportsTypeHints(Protocol):
+    """Protocol for any class from which type hints can be extracted."""
+    pass
+
+
+def get_required_fields(model_cls: type[SupportsTypeHints]) -> list[str]:
     required_fields = list()
 
     type_hints = get_type_hints(model_cls)

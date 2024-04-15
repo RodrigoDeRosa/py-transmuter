@@ -8,16 +8,15 @@ from typing import (
     get_args,
 )
 
-from pydantic import BaseModel
-from py_transmuter.pydantic_mapping.utils import get_required_fields
+from py_transmuter.models.utils import get_required_fields
 from py_transmuter.self_inspector import SelfInspector
 
 
-SourceModel = TypeVar("SourceModel", bound=BaseModel)
-TargetModel = TypeVar("TargetModel", bound=BaseModel)
+SourceModel = TypeVar("SourceModel")
+TargetModel = TypeVar("TargetModel")
 
 
-class BaseModelAggregator(Generic[TargetModel, SourceModel], SelfInspector):
+class ModelAggregator(Generic[TargetModel, SourceModel], SelfInspector):
     """
     Aggregator class that transforms a list of objects of the source model
     into a list of objects of the target model.

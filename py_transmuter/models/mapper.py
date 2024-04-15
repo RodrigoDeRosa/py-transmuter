@@ -1,15 +1,13 @@
 from typing import Any, Callable, Generic, Mapping, TypeVar, get_args
 
-from pydantic import BaseModel
-
-from py_transmuter.pydantic_mapping.utils import get_required_fields
+from py_transmuter.models.utils import get_required_fields
 from py_transmuter.self_inspector import SelfInspector
 
-SourceModel = TypeVar("SourceModel", bound=BaseModel)
-TargetModel = TypeVar("TargetModel", bound=BaseModel)
+SourceModel = TypeVar("SourceModel")
+TargetModel = TypeVar("TargetModel")
 
 
-class BaseModelMapper(Generic[TargetModel, SourceModel], SelfInspector):
+class ModelMapper(Generic[TargetModel, SourceModel], SelfInspector):
     """
     A generic mapper class that maps data from a source model to a target model.
 

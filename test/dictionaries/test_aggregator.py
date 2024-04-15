@@ -3,7 +3,7 @@ from statistics import mean
 from typing import Any
 
 from pytest import raises
-from py_transmuter.dictionary_mapping.aggregator import DictionaryAggregator
+from py_transmuter.dictionaries.aggregator import DictionaryAggregator
 
 
 def test_aggregator_field_direct_mappings():

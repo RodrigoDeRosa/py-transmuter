@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from statistics import mean
 from pydantic import BaseModel
+from pydantic.dataclasses import dataclass as py_dataclass
 from pytest import raises
-from py_transmuter.pydantic_mapping.aggregator import BaseModelAggregator
+from py_transmuter.models.aggregator import ModelAggregator
 
 
 def test_aggregator_field_direct_mappings():
@@ -12,10 +14,25 @@ def test_aggregator_field_direct_mappings():
     class B(BaseModel):
         ids: list[int]
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         mappings = {"ids": "id"}
 
     assert ABAggregator().aggregate([A(id=1), A(id=2), A(id=3)]) == [B(ids=[1, 2, 3])]
+
+
+def test_aggregator_dataclasses():
+    @py_dataclass
+    class A:
+        id: int
+
+    @dataclass
+    class B:
+        ids: list[int]
+
+    class DataClassAggregator(ModelAggregator[B, A]):
+        mappings = {"ids": "id"}
+
+    assert DataClassAggregator().aggregate([A(id=1), A(id=2), A(id=3)]) == [B(ids=[1, 2, 3])]
 
 
 def test_aggregator_tuple_direct_mappings():
@@ -25,11 +42,27 @@ def test_aggregator_tuple_direct_mappings():
     class B(BaseModel):
         ids: list[str]
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         mappings = {"ids": ("id", lambda id: str(id))}
 
     assert ABAggregator().aggregate([A(id=1), A(id=2), A(id=3)]) == [
         B(ids=["1", "2", "3"])
+    ]
+
+
+def test_cross_model_type_aggregator():
+    class A(BaseModel):
+        id: int
+
+    @dataclass
+    class B:
+        ids: list[str]
+
+    class ABMapper(ModelAggregator[B, A]):
+        mappings = {"ids": ("id", lambda value: str(value))}
+
+    assert ABMapper().aggregate([A(id=1), A(id=2), A(id=3)]) == [
+        B(ids=["1", "2", "3"]),
     ]
 
 
@@ -44,7 +77,7 @@ def test_aggregator_model_callable_direct_mappings():
     def make_full_name(data: A) -> str:
         return f"{data.first_name} {data.last_name}"
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         mappings = {"full_names": make_full_name}
 
     assert ABAggregator().aggregate(
@@ -57,7 +90,8 @@ def test_aggregator_model_callable_direct_mappings():
 
 
 def test_aggregator_field_direct_mappings_with_grouping():
-    class Child(BaseModel):
+    @dataclass
+    class Child:
         parent: str
 
         first_name: str
@@ -69,7 +103,7 @@ def test_aggregator_field_direct_mappings_with_grouping():
     def make_full_name(data: Child) -> str:
         return f"{data.first_name} {data.last_name}"
 
-    class ChildParentAggregator(BaseModelAggregator[Parent, Child]):
+    class ChildParentAggregator(ModelAggregator[Parent, Child]):
         group_by = ("parent",)
 
         mappings = {"children_names": make_full_name}
@@ -96,7 +130,7 @@ def test_aggregator_group_by_with_extractor():
     class Parent(BaseModel):
         children_names: list[str]
 
-    class ChildParentAggregator(BaseModelAggregator[Parent, Child]):
+    class ChildParentAggregator(ModelAggregator[Parent, Child]):
         @staticmethod
         def parent_full_name(data: Child) -> str:
             return f"{data.parent} {data.last_name}"
@@ -124,7 +158,7 @@ def test_aggregator_with_grouping_by_field_and_extractor():
         intervals: list[datetime]
         values: list[float]
 
-    class DailyMeasurementAggregator(BaseModelAggregator[DayValues, Measurement]):
+    class DailyMeasurementAggregator(ModelAggregator[DayValues, Measurement]):
         @staticmethod
         def timestamp_date(data: Measurement) -> date:
             return data.timestamp.date()
@@ -165,7 +199,7 @@ def test_aggregator_with_sort_by_field():
     class B(BaseModel):
         ids: list[int]
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         sort_by = ("id",)
 
         mappings = {"ids": "id"}
@@ -184,7 +218,7 @@ def test_aggregator_with_sort_by_extractor():
     def make_full_name(data: Child) -> str:
         return f"{data.first_name} {data.last_name}"
 
-    class ChildParentAggregator(BaseModelAggregator[Parent, Child]):
+    class ChildParentAggregator(ModelAggregator[Parent, Child]):
         sort_by = (make_full_name,)
 
         mappings = {"children_names": make_full_name}
@@ -211,7 +245,7 @@ def test_aggregator_with_sort_by_extractor_and_field():
     def make_full_name(data: Child) -> str:
         return f"{data.first_name} {data.last_name}"
 
-    class ChildParentAggregator(BaseModelAggregator[Parent, Child]):
+    class ChildParentAggregator(ModelAggregator[Parent, Child]):
         sort_by = (make_full_name, "age")
 
         mappings = {"children_names": make_full_name, "ages": "age"}
@@ -240,7 +274,7 @@ def test_aggregator_with_field_mapper_aggregations():
         average = sum(values) / len(values)
         return [value / average for value in values]
 
-    class VerticalToHorizontalAggregator(BaseModelAggregator[Horizontal, Vertical]):
+    class VerticalToHorizontalAggregator(ModelAggregator[Horizontal, Vertical]):
         aggregations = {
             "values": ("value", aggregate_values),
         }
@@ -268,7 +302,7 @@ def test_aggregator_with_extractor_aggregations():
             longitude=mean(turbine.longitude for turbine in turbines),
         )
 
-    class TurbineParkAggregator(BaseModelAggregator[Park, Turbine]):
+    class TurbineParkAggregator(ModelAggregator[Park, Turbine]):
         aggregations = {
             "location": average_coordinates,
         }
@@ -291,7 +325,7 @@ def test_aggregator_with_mappings_and_aggregations():
         id: int
         values: list[float]
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         group_by = ("parent_id",)
 
         mappings = {"values": "value"}
@@ -309,7 +343,7 @@ def test_aggregator_with_overlapping_mappings_and_aggregations_fails_to_create()
     class B(BaseModel):
         id: int
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         mappings = {"id": "parent_id"}
         aggregations = {"id": ("parent_id", lambda ids: ids[0])}
 
@@ -325,7 +359,7 @@ def test_aggregator_without_mappings_or_aggregations_fails_to_create():
     class B(BaseModel):
         id: int
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         pass
 
     with raises(ValueError):
@@ -341,7 +375,7 @@ def test_aggregator_missing_required_fields():
         id: int
         values: list[float]
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         aggregations = {"values": "value"}
 
     with raises(ValueError):
@@ -356,7 +390,7 @@ def test_aggregator_with_extra_fields():
     class B(BaseModel):
         id: int
 
-    class ABAggregator(BaseModelAggregator[B, A]):
+    class ABAggregator(ModelAggregator[B, A]):
         aggregations = {"id": "id", "values": "value"}
 
     with raises(ValueError):

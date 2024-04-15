@@ -1,5 +1,7 @@
 # PyTransmuter
 
+# TODO -> REMOVE PYDANTIC REFERENCES AND MENTION DATACLASSES. INCLUDE DICTIONARY MAPPER.
+
 PyTransmuter is a Python library designed for efficient data mapping and aggregation 
 from source models to target models, leveraging the power of Pydantic for data validation
 and transformation. It simplifies the process of transforming data structures, making it 

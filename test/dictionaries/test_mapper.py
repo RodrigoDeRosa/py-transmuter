@@ -2,7 +2,7 @@ from datetime import date
 from typing import Any
 
 from pytest import raises
-from py_transmuter.dictionary_mapping.mapper import DictionaryMapper
+from py_transmuter.dictionaries.mapper import DictionaryMapper
 
 
 def test_map_with_field_name():

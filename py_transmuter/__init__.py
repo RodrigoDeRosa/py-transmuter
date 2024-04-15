@@ -1,7 +1,7 @@
 __all__ = [
-    "dictionary_mapping",
-    "pydantic_mapping",
+    "dictionaries",
+    "models",
 ]
 
-from py_transmuter import pydantic_mapping
-from py_transmuter import dictionary_mapping
+from py_transmuter import models
+from py_transmuter import dictionaries

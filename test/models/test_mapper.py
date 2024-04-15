@@ -1,7 +1,9 @@
+from dataclasses import dataclass
 from datetime import datetime
 from pydantic import BaseModel
+from pydantic.dataclasses import dataclass as py_dataclass
 from pytest import raises
-from py_transmuter.pydantic_mapping.mapper import BaseModelMapper
+from py_transmuter.models.mapper import ModelMapper
 
 
 def test_map_with_field_name():
@@ -11,10 +13,25 @@ def test_map_with_field_name():
     class B(BaseModel):
         id: int
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": "id"}
 
     assert ABMapper().map(A(id=1)) == B(id=1)
+
+
+def test_map_dataclasses():
+    @dataclass
+    class A:
+        id: int
+
+    @py_dataclass
+    class B:
+        id: int
+
+    class DataClassMapper(ModelMapper[B, A]):
+        mapping = {"id": "id"}
+
+    assert DataClassMapper().map(A(id=1)) == B(id=1)
 
 
 def test_map_with_lambda():
@@ -24,10 +41,25 @@ def test_map_with_lambda():
     class B(BaseModel):
         id: str
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": lambda data: str(data.id)}
 
     assert ABMapper().map(A(id=1)) == B(id="1")
+
+
+def test_cross_model_type_mapping():
+    class A(BaseModel):
+        id: int
+
+    @dataclass
+    class B:
+        id: str
+
+    class ABMapper(ModelMapper[B, A]):
+        mapping = {"id": ("id", lambda value: str(value))}
+    
+    assert ABMapper().map(A(id=1)) == B(id="1")
+
 
 
 def test_map_with_function():
@@ -40,7 +72,7 @@ def test_map_with_function():
     def map_id(data: A) -> str:
         return str(data.id * 10)
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": map_id}
 
     assert ABMapper().map(A(id=1)) == B(id="10")
@@ -53,7 +85,7 @@ def test_map_with_context_and_self_inspection():
     class B(BaseModel):
         id: str
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         def map_id(self, data: A) -> str:
             return str(data.id * self.context["factor"])
 
@@ -69,7 +101,7 @@ def test_map_with_class_method():
     class B(BaseModel):
         id: int
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         FACTOR = 10
 
         @classmethod
@@ -88,7 +120,7 @@ def test_map_with_tuple_accessor():
     class B(BaseModel):
         id: int
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": ("id", lambda value: value * 10)}
 
     assert ABMapper().map(A(id=1)) == B(id=10)
@@ -101,7 +133,7 @@ def test_map_list():
     class B(BaseModel):
         id: int
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": "id"}
 
     assert ABMapper().map_list([A(id=1), A(id=2)]) == [B(id=1), B(id=2)]
@@ -115,7 +147,7 @@ def test_map_without_optional_fields():
         id: int
         name: str | None = None
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": "id"}
 
     assert ABMapper().map(A(id=1)) == B(id=1)
@@ -129,7 +161,7 @@ def test_map_missing_required_field_fails():
         id: int
         name: str
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": "id"}
 
     with raises(ValueError):
@@ -143,7 +175,7 @@ def test_map_extra_field_fails():
     class B(BaseModel):
         id: int
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": "id", "name": "name"}
 
     with raises(ValueError):
@@ -158,7 +190,7 @@ def test_map_with_optional_field():
         id: int
         name: str | None = None
 
-    class ABMapper(BaseModelMapper[B, A]):
+    class ABMapper(ModelMapper[B, A]):
         mapping = {"id": "id", "name": lambda data: "Rodrigo"}
 
     assert ABMapper().map(A(id=1)) == B(id=1, name="Rodrigo")
@@ -169,7 +201,7 @@ def test_map_complex_models():
         temperature_fahrenheit: float
         humidity_proportion: float
         timestamp: datetime
-        
+
         country: str | None = None
 
     class WeatherDataUI(BaseModel):
@@ -180,27 +212,28 @@ def test_map_complex_models():
 
         language: str
 
-    class WeatherDataMapper(BaseModelMapper[WeatherDataBackend, WeatherDataUI]):
+    class WeatherDataMapper(ModelMapper[WeatherDataBackend, WeatherDataUI]):
         @staticmethod
         def celsius_to_fahrenheit(celsius: float) -> float:
             return (celsius * 9 / 5) + 32
 
         @staticmethod
         def parse_date_time_to_object(data: WeatherDataUI) -> datetime:
-            return datetime.strptime(
-                f"{data.date} {data.time}", "%Y-%m-%d %H:%M"
-            )
+            return datetime.strptime(f"{data.date} {data.time}", "%Y-%m-%d %H:%M")
 
         mapping = {
             "temperature_fahrenheit": ("temperature_celsius", celsius_to_fahrenheit),
-            "humidity_proportion": ("humidity_percentage", lambda humidity: float(humidity) / 100),
+            "humidity_proportion": (
+                "humidity_percentage",
+                lambda humidity: float(humidity) / 100,
+            ),
             "timestamp": parse_date_time_to_object,
         }
 
     to_map = WeatherDataUI(
         temperature_celsius=10,
         humidity_percentage=50,
-        date="2021-01-01", 
+        date="2021-01-01",
         time="12:00",
         language="en",
     )
@@ -209,5 +242,5 @@ def test_map_complex_models():
     assert mapped == WeatherDataBackend(
         temperature_fahrenheit=50.0,
         humidity_proportion=0.5,
-        timestamp=datetime(2021, 1, 1, 12)
+        timestamp=datetime(2021, 1, 1, 12),
     )
