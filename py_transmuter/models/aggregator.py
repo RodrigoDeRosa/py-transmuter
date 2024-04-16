@@ -4,16 +4,12 @@ from typing import (
     Callable,
     Generic,
     Mapping,
-    TypeVar,
     get_args,
 )
 
+from py_transmuter.models.types import TargetModel, SourceModel
 from py_transmuter.models.utils import get_required_fields
 from py_transmuter.self_inspector import SelfInspector
-
-
-SourceModel = TypeVar("SourceModel")
-TargetModel = TypeVar("TargetModel")
 
 
 class ModelAggregator(Generic[TargetModel, SourceModel], SelfInspector):

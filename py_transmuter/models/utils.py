@@ -1,12 +1,8 @@
 import inspect
 from types import UnionType
-from typing import Optional, Protocol, Union, get_type_hints, runtime_checkable
+from typing import Optional, Union, get_type_hints
 
-
-@runtime_checkable
-class SupportsTypeHints(Protocol):
-    """Protocol for any class from which type hints can be extracted."""
-    pass
+from py_transmuter.models.types import SupportsTypeHints
 
 
 def get_required_fields(model_cls: type[SupportsTypeHints]) -> list[str]:

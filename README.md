@@ -1,21 +1,18 @@
 # PyTransmuter
 
-# TODO -> REMOVE PYDANTIC REFERENCES AND MENTION DATACLASSES. INCLUDE DICTIONARY MAPPER.
-
-PyTransmuter is a Python library designed for efficient data mapping and aggregation 
-from source models to target models, leveraging the power of Pydantic for data validation
-and transformation. It simplifies the process of transforming data structures, making it 
-an essential tool for applications requiring data normalization, transformation, and aggregation.
+PyTransmuter is a Python library designed for efficient data mapping and aggregation from source 
+models to target models. It simplifies the process of transforming data structures, even between classes
+of different types (this is, you can transform from a `BaseModel` to a `@dataclass` if you need to) or 
+even transform data in Python dictionaries.
 
 ## Features
 
-- **Generic Mapping**: Utilizes generic typing to map data between different model structures.
+- **Generic Mapping**: Utilizes generic typing to map data between different model structures; for example, Python's `@dataclass`, 
+Pydantic's `BaseModel`, Pydantic's `@dataclass` or even plain dictionaries.
 - **Flexible Aggregation**: Supports complex data aggregation strategies, including grouping, 
 sorting, and custom aggregation functions.
 - **Self-Inspection**: Incorporates self-inspection capabilities for resolving callables related 
 to class instances.
-- **Pydantic Integration**: Leverages Pydantic models for input and output validation, ensuring 
-data integrity.
 - **Customizable Transformations**: Allows defining custom field transformations using callable 
 functions or lambdas.
 
@@ -27,16 +24,18 @@ To install the library, run the following command in your terminal:
 pip install py-transmuter
 ```
 
-## Usage of the Mapper
+## Usage of the ModelMapper
 
 ### Basic Setup
 
-Start by defining your source and target Pydantic models that represent the structure of your input and output data:
+Start by defining your source and target models that represent the structure of your input and output data:
 
 ```python
 from pydantic import BaseModel
+from dataclasses import dataclass
 
-class SourceModel(BaseModel):
+@dataclass
+class SourceModel:
     id: int
     temperature_celsius: float
     humidity_percentage: int
@@ -47,14 +46,14 @@ class TargetModel(BaseModel):
     humidity_proportion: float
 ```
 
-### Implementing a Mapper
+### Implementing a ModelMapper
 
-Define a mapper by inheriting from `BaseModelMapper`, specifying how each field in the source model maps to the target model:
+Define a mapper by inheriting from `ModelMapper`, specifying how each field in the source model maps to the target model:
 
 ```python
-from py_transmuter.pydantic.mapper import BaseModelMapper
+from py_transmuter.models.mapper import ModelMapper
 
-class MyMapper(BaseModelMapper[TargetModel, SourceModel]):
+class MyMapper(ModelMapper[TargetModel, SourceModel]):
     mapping = {
         "id": "id",
         "temperature_fahrenheit": ("temperature_celsius", lambda c: c * 9 / 5 + 32),
@@ -78,7 +77,7 @@ print(target_data)
 
 ### Mapping Lists of Data
 
-`BaseModelMapper` also supports mapping lists of data from source models to target models:
+`ModelMapper` also supports mapping lists of data from source models to target models:
 
 ```python
 source_list = [
@@ -94,36 +93,38 @@ for item in mapped_list:
 ```
 
 
-## Usage of the Aggregator
+## Usage of the ModelAggregator
 
 ### Basic Setup
 
-First, define your source and target Pydantic models:
+First, define your source and target models:
 
 ```python
 from pydantic import BaseModel
+from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 class SourceModel(BaseModel):
     id: int
     first_name: str
     last_name: str
 
-class TargetModel(BaseModel):
+@pydantic_dataclass
+class TargetModel:
     full_names: list[str]
 ```
 
 ### Aggregating Data
 
-To aggregate data from a list of `SourceModel` instances into a list of `TargetModel` instances, define an aggregator class by inheriting from `BaseModelAggregator`:
+To aggregate data from a list of `SourceModel` instances into a list of `TargetModel` instances, define an aggregator class by inheriting from `ModelAggregator`:
 
 ```python
-from py_transmuter.pydantic.aggregator import BaseModelAggregator
+from py_transmuter.models.aggregator import ModelAggregator
 
-class MyAggregator(BaseModelAggregator[TargetModel, SourceModel]):
+class MyAggregator(ModelAggregator[TargetModel, SourceModel]):
     mappings = {"full_names": lambda data: f"{data.first_name} {data.last_name}"}
 ```
 
-### Using the Aggregator
+### Using the ModelAggregator
 
 Once your aggregator is defined, you can use it to aggregate data as follows:
 
@@ -142,7 +143,7 @@ print(target_data)
 # Output: [TargetModel(full_names=['Jane Doe', 'John Doe'])]
 ```
 
-### Advanced Usage of the Aggregator
+### Advanced Usage of the ModelAggregator
 
 For more complex scenarios, `py-transmuter` allows for advanced data transformation capabilities, including grouping, sorting, and using custom functions for mappings and aggregations. Here’s an elaborate example that showcases these features.
 
@@ -169,15 +170,15 @@ class DailyAverage(BaseModel):
     average_value: float
 ```
 
-#### Aggregator Class
+#### ModelAggregator Class
 
 Next, define the aggregator class that specifies how to group measurements, how to calculate the daily averages, and how to sort the results:
 
 ```python
-from py_transmuter.pydantic.aggregator import BaseModelAggregator
+from py_transmuter.models.aggregator import ModelAggregator
 from statistics import mean
 
-class MeasurementAggregator(BaseModelAggregator[DailyAverage, Measurement]):
+class MeasurementAggregator(ModelAggregator[DailyAverage, Measurement]):
     # Group by sensor ID and the date part of the timestamp
     group_by = (
         "sensor_id",
@@ -217,7 +218,7 @@ print(daily_averages)
 # [DailyAverage(sensor_id=1, date=date(2024, 1, 1), average_value=15), DailyAverage(sensor_id=2, date=date(2024, 1, 1), value=30), ...]
 ```
 
-### Using mappings in the Aggregator
+### Using mappings in the ModelAggregator
 
 An `Aggregator` can have both `aggregation` and `mappings`; the former were explained above, but the latter serve a way simpler purpose: simply extract the value of field
 for every element in the group and store it in a list; for example:
@@ -232,7 +233,7 @@ class Parent(BaseModel):
     name: str
     children: list[str]
 
-class ChildParentAggregator(BaseModelAggregator[Parent, Child]):
+class ChildParentAggregator(ModelAggregator[Parent, Child]):
     group_by = ('parent',)
 
     mappings = {"children": lambda child: f"{child.first_name} {child.last_name}"}
@@ -255,20 +256,22 @@ print(parents)
 
 ## Using self inspection
 
-There are many scenarios in which we need values that are known only in runtime and not when declaring the mappings and aggregations for our `Mapper` or `Aggregator` class;
+There are many scenarios in which we need values that are known only in runtime and not when declaring the mappings and aggregations for our `ModelMapper` or `ModelAggregator` class;
 for this, both these classes are capable of identifying methods that "belong to them" and it is possible to add them to the static definitions of `mappings` and `aggregations`,
 and can later access class or instance attributes in runtime.
 
 An example of this would be:
 
 ```python
-class A(BaseModel):
+@dataclass
+class A:
     id: int
 
-class B(BaseModel):
+@dataclass
+class B:
     id: str
 
-class ABMapper(BaseModelMapper[B, A]):
+class ABMapper(ModelMapper[B, A]):
     def map_id(self, data: A) -> str:
         return str(data.id * self.context["factor"])
 
@@ -277,14 +280,39 @@ class ABMapper(BaseModelMapper[B, A]):
 assert ABMapper(context={"factor": 2}).map(A(id=1)) == B(id="2")
 ```
 
-The `context` attribute is included by default in both the `Mapper` and the `Aggregator`, but you could define the class as you wish (with any attributes you'd want) and 
+The `context` attribute is included by default in both the `ModelMapper` and the `ModelAggregator`, but you could define the class as you wish (with any attributes you'd want) and 
 access them in the moment they are needed:
 
 ```python
-class Mapper(BaseModelMapper[B, A]):
+class Mapper(ModelMapper[B, A]):
     attribute: Any
 
     def __init__(self, attribute: Any, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attribute = attribute
 ```
+
+## Dictionary Mapper and Aggregator
+
+Very similarly to what we can do with the `ModelMapper` and `ModelAggregator`, we can create a `DictionaryMapper` and `DictionaryAggregator`. These have the same functionalities
+we have seen above but allow for mapping and aggregation of dictionaries of type `dict[Any, Any]` (not restricted to `string` keys or JSON formats).
+
+An example of this would be:
+
+```python
+from py_transmuter.dictionaries.mapper import DictionaryMapper
+
+class Mapper(DictionaryMapper):
+    mapping = {
+        "id": 1,
+        ("march", 14): date(2021, 3, 14),
+    }
+
+mapper = Mapper()
+
+source = {1: "an_id", date(2021, 3, 14): "Tomorrow is Pi day!"}
+mapper.map(source)
+# {"id": "an_id", ("march, 14"): "Tomorrow is Pi day!"}
+```
+
+This seems quite odd, but who knows, maybe you're the one who finds it useful!
